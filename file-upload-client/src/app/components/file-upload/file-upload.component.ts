@@ -1,77 +1,82 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FileUploadService } from '../../services/file-upload.service';
-import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-file-upload',
   template: `
-    <div class="container mt-5">
-      <div class="card">
-        <div class="card-header">
-          <h3>File Upload</h3>
-        </div>
-        <div class="card-body">
-          <div class="mb-3">
-            <input type="file" class="form-control" (change)="onFileSelected($event)">
-          </div>
-          <button class="btn btn-primary" (click)="onUpload()" [disabled]="!selectedFile">
-            Upload
-          </button>
-
-          <div class="mt-4">
-            <h4>Notifications</h4>
-            <div class="list-group">
-              <div *ngFor="let notification of notifications" 
-                   class="list-group-item"
-                   [ngClass]="{'list-group-item-success': notification.success, 
-                             'list-group-item-danger': !notification.success}">
-                <h5 class="mb-1">{{notification.fileName}}</h5>
-                <p class="mb-1">{{notification.message}}</p>
-                <small>Processed at: {{notification.processedAt | date:'medium'}}</small>
-              </div>
-            </div>
-          </div>
-        </div>
+    <div class="upload-container">
+      <input type="file" (change)="onFileSelected($event)" #fileInput>
+      <button (click)="uploadFile()" [disabled]="!selectedFile">Upload</button>
+      <div *ngIf="uploadStatus" [class]="uploadStatus">
+        {{ uploadMessage }}
       </div>
     </div>
   `,
-  styles: []
+  styles: [`
+    .upload-container {
+      margin: 20px;
+      padding: 20px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .success {
+      color: green;
+      margin-top: 10px;
+    }
+    .error {
+      color: red;
+      margin-top: 10px;
+    }
+  `]
 })
 export class FileUploadComponent implements OnInit, OnDestroy {
   selectedFile: File | null = null;
-  notifications: any[] = [];
-  private subscription: Subscription;
+  uploadStatus: 'success' | 'error' | null = null;
+  uploadMessage: string = '';
 
-  constructor(private fileUploadService: FileUploadService) {
-    this.subscription = this.fileUploadService.getFileProcessedNotifications()
-      .subscribe(notification => {
-        this.notifications.unshift(notification);
-      });
+  constructor(private fileUploadService: FileUploadService) {}
+
+  ngOnInit() {
+    this.fileUploadService.onNotification((message: string) => {
+      this.uploadStatus = 'success';
+      this.uploadMessage = message;
+    });
   }
 
-  ngOnInit(): void {}
+  ngOnDestroy() {
+    // No need to unsubscribe as we're using callback
+  }
 
-  ngOnDestroy(): void {
-    if (this.subscription) {
-      this.subscription.unsubscribe();
+  onFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.selectedFile = input.files[0];
+      this.uploadStatus = null;
+      this.uploadMessage = '';
     }
   }
 
-  onFileSelected(event: any): void {
-    this.selectedFile = event.target.files[0];
-  }
-
-  onUpload(): void {
+  uploadFile() {
     if (this.selectedFile) {
-      this.fileUploadService.uploadFile(this.selectedFile)
-        .subscribe({
-          next: (response) => {
-            console.log('File uploaded successfully', response);
-          },
-          error: (error) => {
-            console.error('Error uploading file', error);
+      this.uploadStatus = null;
+      this.uploadMessage = 'Uploading...';
+      
+      this.fileUploadService.uploadFile(this.selectedFile).subscribe({
+        next: (response) => {
+          this.uploadStatus = 'success';
+          this.uploadMessage = 'File uploaded successfully!';
+          this.selectedFile = null;
+          // Reset file input
+          const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+          if (fileInput) {
+            fileInput.value = '';
           }
-        });
+        },
+        error: (error) => {
+          this.uploadStatus = 'error';
+          this.uploadMessage = 'Error uploading file: ' + error.message;
+        }
+      });
     }
   }
 } 

@@ -35,7 +35,7 @@ services:
       - rabbitmq
       - seq
     volumes:
-      - uploads:/app/uploads
+      - uploads:/app/uploads:rw
 
   fileupload.worker:
     build:
@@ -50,7 +50,7 @@ services:
       - fileupload.api
       - seq
     volumes:
-      - uploads:/app/uploads
+      - uploads:/app/uploads:rw
 
   fileupload.notification:
     build:
