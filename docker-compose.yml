@@ -1,0 +1,63 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  fileupload.api:
+    build:
+      context: .
+      dockerfile: FileUpload.API/Dockerfile
+    ports:
+      - "7000:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+    depends_on:
+      - rabbitmq
+    volumes:
+      - uploads:/app/uploads
+
+  fileupload.worker:
+    build:
+      context: .
+      dockerfile: FileUpload.Worker/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    depends_on:
+      - rabbitmq
+      - fileupload.api
+    volumes:
+      - uploads:/app/uploads
+
+  fileupload.notification:
+    build:
+      context: .
+      dockerfile: FileUpload.Notification/Dockerfile
+    ports:
+      - "7001:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+    depends_on:
+      - rabbitmq
+
+  # client:
+  #   build:
+  #     context: .
+  #     dockerfile: file-upload-client/Dockerfile
+  #   ports:
+  #     - "4200:80"
+  #   depends_on:
+  #     - fileupload.api
+  #     - fileupload.notification
+
+volumes:
+  rabbitmq_data:
+  uploads: 

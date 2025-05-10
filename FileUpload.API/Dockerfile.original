@@ -1,0 +1,21 @@
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
+WORKDIR /app
+EXPOSE 80
+EXPOSE 443
+
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+COPY ["FileUpload.API/FileUpload.API.csproj", "FileUpload.API/"]
+COPY ["FileUpload.Contracts/FileUpload.Contracts.csproj", "FileUpload.Contracts/"]
+RUN dotnet restore "FileUpload.API/FileUpload.API.csproj"
+COPY . .
+WORKDIR "/src/FileUpload.API"
+RUN dotnet build "FileUpload.API.csproj" -c Release -o /app/build
+
+FROM build AS publish
+RUN dotnet publish "FileUpload.API.csproj" -c Release -o /app/publish
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "FileUpload.API.dll"] 
