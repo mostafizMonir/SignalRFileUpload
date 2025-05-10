@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
 using Serilog;
+using Microsoft.Extensions.Logging;
 
 namespace FileUpload.Notification.Hubs;
 
@@ -14,17 +15,17 @@ public class NotificationHub : Hub
 
     public override async Task OnConnectedAsync()
     {
-        _logger.Information("Client connected: {ConnectionId}", Context.ConnectionId);
+        _logger.LogInformation("Client connected: {ConnectionId}", Context.ConnectionId);
         await Groups.AddToGroupAsync(Context.ConnectionId, Context.User?.Identity?.Name ?? "anonymous");
         await base.OnConnectedAsync();
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        _logger.Information("Client disconnected: {ConnectionId}", Context.ConnectionId);
+        _logger.LogInformation("Client disconnected: {ConnectionId}", Context.ConnectionId);
         if (exception != null)
         {
-            _logger.Error(exception, "Client disconnected with error: {ConnectionId}", Context.ConnectionId);
+            _logger.LogError(exception, "Client disconnected with error: {ConnectionId}", Context.ConnectionId);
         }
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, Context.User?.Identity?.Name ?? "anonymous");
         await base.OnDisconnectedAsync(exception);
@@ -32,7 +33,7 @@ public class NotificationHub : Hub
 
     public async Task SendNotification(string message)
     {
-        _logger.Information("Sending notification to all clients: {Message}", message);
+        _logger.LogInformation("Sending notification to all clients: {Message}", message);
         await Clients.All.SendAsync("ReceiveNotification", message);
     }
 } 
