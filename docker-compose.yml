@@ -1,4 +1,14 @@
 services:
+  seq:
+    image: datalust/seq:latest
+    ports:
+      - "5341:80"
+      - "5342:5342"
+    environment:
+      - ACCEPT_EULA=Y
+    volumes:
+      - seq_data:/data
+
   rabbitmq:
     image: rabbitmq:3-management
     ports:
@@ -19,8 +29,11 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
+      - Serilog__WriteTo__0__Name=Seq
+      - Serilog__WriteTo__0__Args__serverUrl=http://seq:5341
     depends_on:
       - rabbitmq
+      - seq
     volumes:
       - uploads:/app/uploads
 
@@ -30,9 +43,12 @@ services:
       dockerfile: FileUpload.Worker/Dockerfile
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - Serilog__WriteTo__0__Name=Seq
+      - Serilog__WriteTo__0__Args__serverUrl=http://seq:5341
     depends_on:
       - rabbitmq
       - fileupload.api
+      - seq
     volumes:
       - uploads:/app/uploads
 
@@ -45,8 +61,11 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
+      - Serilog__WriteTo__0__Name=Seq
+      - Serilog__WriteTo__0__Args__serverUrl=http://seq:5341
     depends_on:
       - rabbitmq
+      - seq
 
   # client:
   #   build:
@@ -60,4 +79,5 @@ services:
 
 volumes:
   rabbitmq_data:
-  uploads: 
+  uploads:
+  seq_data: 

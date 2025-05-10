@@ -1,7 +1,14 @@
 using FileUpload.Worker;
 using MassTransit;
+using Serilog;
 
-var builder = Host.CreateDefaultBuilder(args)
+IHost host = Host.CreateDefaultBuilder(args)
+    .UseSerilog((context, services, configuration) => configuration
+        .ReadFrom.Configuration(context.Configuration)
+        .ReadFrom.Services(services)
+        .Enrich.FromLogContext()
+        .WriteTo.Console()
+        .WriteTo.Seq("http://seq:5341"))
     .ConfigureServices((hostContext, services) =>
     {
         services.AddMassTransit(x =>
@@ -19,7 +26,7 @@ var builder = Host.CreateDefaultBuilder(args)
                 cfg.ConfigureEndpoints(context);
             });
         });
-    });
+    })
+    .Build();
 
-var host = builder.Build();
-host.Run();
+await host.RunAsync();
