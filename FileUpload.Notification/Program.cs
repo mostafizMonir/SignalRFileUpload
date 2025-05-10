@@ -25,6 +25,7 @@ builder.Services.AddCors(options =>
     });
 });
 
+
 // Configure MassTransit
 builder.Services.AddMassTransit(x =>
 {
