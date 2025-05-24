@@ -4,7 +4,8 @@
       "commandName": "DockerCompose",
       "commandVersion": "1.0",
       "serviceActions": {
-        "fileupload.api": "StartDebugging"
+        "fileupload.api": "StartDebugging",
+        "order.notifications": "StartDebugging"
       }
     }
   }

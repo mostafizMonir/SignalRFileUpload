@@ -67,17 +67,24 @@ services:
       - rabbitmq
       - seq
 
-  # client:
-  #   build:
-  #     context: .
-  #     dockerfile: file-upload-client/Dockerfile
-  #   ports:
-  #     - "4200:80"
-  #   depends_on:
-  #     - fileupload.api
-  #     - fileupload.notification
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  order.notifications:
+    image: ${DOCKER_REGISTRY-}ordernotifications
+    build:
+      context: .
+      dockerfile: Order.Notifications/Dockerfile
+    ports  :
+      - "7002:8080"
+      - "7003:8081"
 
 volumes:
   rabbitmq_data:
   uploads:
   seq_data: 
+  redis_data:

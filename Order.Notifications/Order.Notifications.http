@@ -1,0 +1,14 @@
+@Order.Notifications_HostAddress = http://localhost:5083
+
+GET {{Order.Notifications_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
+POST {{Order.Notifications_HostAddress}}/orders
+Content-Type: application/json
+
+{
+}
+
+###
+
