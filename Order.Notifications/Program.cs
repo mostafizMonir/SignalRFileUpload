@@ -1,13 +1,19 @@
 using System.Text.Json;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Distributed;
 using StackExchange.Redis;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
+using Order.Notifications;
+using Order.Notifications.Hubs;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddSignalR();
 
 // Add Redis configuration
 var redisConnectionString = builder.Configuration["Redis:ConnectionString"];
@@ -19,9 +25,10 @@ builder.Services.AddStackExchangeRedisCache(options => options.Configuration = r
 
 builder.Services.AddCors(options =>
     options.AddPolicy("AllowAll", policy =>
-        policy.AllowAnyOrigin()
+        policy.WithOrigins("http://localhost:4200")
               .AllowAnyHeader()
-              .AllowAnyMethod()));
+              .AllowAnyMethod()
+              .AllowCredentials()));
 
 // Then in middleware:
 
@@ -52,7 +59,7 @@ var summaries = new[]
 
 
 
-app.MapPost("orders", async (IDistributedCache cache) =>
+app.MapPost("orders", async (IDistributedCache cache, IHubContext<OrderNotificationHub> hubContext) =>
 {
     var order = new DummyOrder()
     {
@@ -70,6 +77,8 @@ app.MapPost("orders", async (IDistributedCache cache) =>
         cacheKey, JsonSerializer.Serialize(order),
         options
         );
+
+    await hubContext.Clients.All.SendAsync("OrderCreated", order);
 
     return Results.Created($"orders/{order.Id}", order);
 });
@@ -107,7 +116,8 @@ app.MapGet("orders", async (IConnectionMultiplexer redis, IDistributedCache cach
     return Results.Ok(orders);
 });
 
-app.MapPut("orders/{id}", async (Guid id, DummyOrder order, IDistributedCache cache) =>
+app.MapPut("orders/{id}", async (Guid id, DummyOrder order, 
+    IDistributedCache cache, IHubContext<OrderNotificationHub> hubContext) =>
 {
     if (id != order.Id)
     {
@@ -126,16 +136,12 @@ app.MapPut("orders/{id}", async (Guid id, DummyOrder order, IDistributedCache ca
         options
     );
 
+    await hubContext.Clients.All.SendAsync("OrderStatusUpdated", order);
+
     return Results.NoContent();
 });
 
 
+app.MapHub<OrderNotificationHub>("/orderHub");
+
 app.Run();
-
-public class DummyOrder
-
-{
-    public Guid Id { get; set; }
-    public string Name { get; set; }
-}
-
