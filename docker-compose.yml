@@ -79,9 +79,16 @@ services:
     build:
       context: .
       dockerfile: Order.Notifications/Dockerfile
-    ports  :
+    ports:
       - "7002:8080"
       - "7003:8081"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080;http://+:8081
+      - Serilog__WriteTo__0__Name=Seq
+      - Serilog__WriteTo__0__Args__serverUrl=http://seq:5341
+    depends_on:
+      - seq
 
 volumes:
   rabbitmq_data:
